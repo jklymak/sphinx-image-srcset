@@ -40,3 +40,8 @@
 .. |CodeCov|
    image:: https://codecov.io/gh/anntzer/sphinx-redirectfrom/master.svg
    :target: https://codecov.io/gh/anntzer/sphinx-redirectfrom
+
+.. code-block:: sh
+
+   cd tests/sample-proj
+   make clean && PYTHONPATH=../../lib make html
