@@ -2,7 +2,7 @@ import sphinx_gallery.scrapers as scrapers
 import os 
 
 def matplotlib_scraper_multi(block, block_vars, gallery_conf, **kwargs):
-    """Scrape Matplotlib images.
+    """Scrape Matplotlib images, but with both high and low-def...
 
     Parameters
     ----------

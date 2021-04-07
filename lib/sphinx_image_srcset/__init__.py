@@ -15,19 +15,38 @@ from os.path import relpath
 import shutil
 
 
-
 def setup(app):
     ImageSrcset.app = app
     #setup.confdir = app.confdir
     setup.app = app
     app.add_directive("image-srcset", ImageSrcset)
-    # app.connect("build-finished", _generate_redirects)
 
 
 class ImageSrcset(Directive):
+    """
+    Impliments a directive to allow an optional hidpi image.  If one is not
+    available, it just uses the low-dpi image.
+
+    e.g.:
+
+    .. image-srcset:: /plot_types/basic/images/sphx_glr_bar_001.png
+        :alt: bar
+        :hidpi: /plot_types/basic/images/sphx_glr_bar_001_hidpi.png
+        :class: sphx-glr-single-img
+    
+    The result is
+
+    <img srcset="_images/sphx_glr_bar_001.png, sphx_glr_bar_001_hidpi.png 2x",
+        src="sphx_glr_bar_001_hidpi.png"
+        alt="bar"
+        class="sphx-glr-single-img>
+
+    See https://developer.mozilla.org/en-US/docs/Learn/HTML/Multimedia_and_embedding/Responsive_images#resolution_switching_same_size_different_resolutions
+
+    """
     has_content = True
     required_arguments = 1
-    optional_arguments = 2
+    optional_arguments = 3
     final_argument_whitespace = False
     option_spec = {
         'alt': directives.unchanged,
