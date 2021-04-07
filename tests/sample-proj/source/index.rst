@@ -10,8 +10,13 @@ Welcome to sample-proj's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. redirect-from:: /old-index
+.. image:: _images/sphx_glr_bar_001.png
+   :alt: Bar plot
+   
 
+.. image-srcset:: sphx_glr_bar_001.png
+   :alt: Bar plot!
+   :hidpi: sphx_glr_bar_001_hidpi.png
 
 Indices and tables
 ==================

@@ -1,45 +1,94 @@
 from pathlib import Path
 try:
     import importlib.metadata
-    __version__ = importlib.metadata.version("sphinx-redirectfrom")
+    __version__ = importlib.metadata.version("sphinx-image-srcset")
 except ImportError:
     __version__ = "0+unknown"
 
-from docutils.parsers.rst import Directive
+from docutils.parsers.rst import directives, Directive
+from docutils.parsers.rst.directives.images import Image
+from docutils import statemachine
+
+import os
+from os.path import relpath
+
+import shutil
+
 
 
 def setup(app):
-    RedirectFrom.app = app
-    app.add_directive("redirect-from", RedirectFrom)
-    app.connect("build-finished", _generate_redirects)
+    ImageSrcset.app = app
+    #setup.confdir = app.confdir
+    setup.app = app
+    app.add_directive("image-srcset", ImageSrcset)
+    # app.connect("build-finished", _generate_redirects)
 
 
-class RedirectFrom(Directive):
+class ImageSrcset(Directive):
+    has_content = True
     required_arguments = 1
-    redirects = {}
-
+    optional_arguments = 2
+    final_argument_whitespace = False
+    option_spec = {
+        'alt': directives.unchanged,
+        'hidpi': directives.unchanged,
+        'class': directives.unchanged
+    }
     def run(self):
-        redirected_doc, = self.arguments
-        env = self.app.env
-        builder = self.app.builder
-        current_doc = env.path2doc(self.state.document.current_source)
-        current_reldoc, _ = env.relfn2path(current_doc)
-        redirected_reldoc, _ = env.relfn2path(redirected_doc, current_doc)
-        if redirected_reldoc in self.redirects:
-            raise ValueError(
-                f"{redirected_reldoc} is already noted as redirecting to "
-                f"{self.redirects[redirected_reldoc]}")
-        self.redirects[redirected_reldoc] = builder.get_relative_uri(
-            redirected_reldoc, current_reldoc)
+        args = self.arguments
+        imagenm = args[0]
+        options = self.options
+        hidpiimagenm = options.pop('hidpi', None)
+        document = self.state_machine.document
+
+        source_file_name = os.path.join(setup.app.builder.srcdir,
+                                            directives.uri(args[0]))
+        
+        current_dir = os.path.dirname(self.state.document.current_source)
+
+        # where will the html file go...
+        source_rel_name = relpath(document.attributes['source'], setup.app.confdir)
+        source_rel_dir = os.path.dirname(source_rel_name)
+        dest_dir = os.path.abspath(os.path.join(self.app.builder.outdir,
+                                            source_rel_dir))
+        
+        # where will the images go...
+        image_dir = os.path.abspath(os.path.join(self.app.builder.outdir,
+                                            '_images'))
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+
+        # get relative path between images and where the html will be:
+        image_rel = relpath(image_dir, dest_dir)
+
+        # Copy image files:    
+        for fn in [imagenm, hidpiimagenm]:
+            if fn is not None:          
+                base = os.path.basename(fn)  
+                sourceimg = os.path.join(current_dir, 'images', base)
+                destimg = os.path.join(image_dir, base)
+                shutil.copyfile(sourceimg, destimg)
+            
+        #    <img srcset="elva-fairy-320w.jpg,
+        #            elva-fairy-480w.jpg 1.5x,
+        #             elva-fairy-640w.jpg 2x"
+        #     src="elva-fairy-640w.jpg"
+        #     alt="Elva dressed as a fairy">
+        
+        # write html...
+        imagebase = os.path.basename(imagenm)
+        baseimage = os.path.join(image_rel, imagebase)
+        hiimage = os.path.join(image_rel, os.path.basename(hidpiimagenm))
+        alt = options.pop('alt', '')
+        classst = options.pop('class', None)
+        if classst is not None:
+            classst = f'class="{classst}"'
+        else:
+            classst = ''
+        result = f'.. raw:: html\n\n    <img srcset="{baseimage}, {hiimage} 2x" src="{hiimage}" alt="{alt}" {classst}>'
+        result = statemachine.string2lines(result, convert_whitespace=True)
+        self.state_machine.insert_input(result, source=source_file_name)
+
         return []
 
 
-def _generate_redirects(app, exception):
-    builder = app.builder
-    if builder.name != "html" or exception:
-        return
-    for k, v in RedirectFrom.redirects.items():
-        with Path(app.outdir, k + builder.out_suffix).open("x") as file:
-            file.write(
-                f'<html><head><meta http-equiv="refresh" content="0; url={v}">'
-                f'</head></html>')

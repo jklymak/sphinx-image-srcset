@@ -2,7 +2,7 @@ from setupext import find_namespace_packages, setup
 
 
 setup(
-    name="sphinx-redirectfrom",
+    name="sphinx-image-srcset",
     description="",
     long_description=open("README.rst", encoding="utf-8").read(),
     long_description_content_type="text/x-rst",
